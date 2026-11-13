@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>設備借用系統 - 使用者登入</title>
+    <title>設備借用系統 - 登入與註冊</title>
     <style>
         body {
             font-family: sans-serif;
@@ -11,31 +11,58 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
             margin: 0;
+            padding: 15px;
+            box-sizing: border-box;
         }
-        .login-card {
+        .card {
             background: white;
-            padding: 30px 25px;
+            padding: 25px;
             border-radius: 12px;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-            width: 90%;
-            max-width: 360px;
+            width: 100%;
+            max-width: 380px;
             text-align: center;
         }
-        h2 { margin-top: 0; color: #333; margin-bottom: 20px; }
-        .input-group { text-align: left; margin-bottom: 15px; }
+        h2 { margin-top: 0; color: #333; margin-bottom: 15px; }
+        
+        /* 分頁切換按鈕 */
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e9ecef;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 10px;
+            background: none;
+            border: none;
+            font-size: 16px;
+            font-weight: bold;
+            color: #6c757d;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+        }
+        .tab-btn.active {
+            color: #0056b3;
+            border-bottom-color: #0056b3;
+        }
+
+        .input-group { text-align: left; margin-bottom: 14px; }
         label { display: block; font-size: 14px; color: #555; margin-bottom: 5px; font-weight: bold; }
         input {
             width: 100%;
-            padding: 12px;
-            font-size: 16px;
+            padding: 11px;
+            font-size: 15px;
             border: 1px solid #ccc;
             border-radius: 8px;
             box-sizing: border-box;
         }
         input:focus { border-color: #0056b3; outline: none; }
-        button {
+        
+        .submit-btn {
             width: 100%;
             padding: 12px;
             font-size: 16px;
@@ -45,28 +72,70 @@
             border: none;
             border-radius: 8px;
             cursor: pointer;
-            margin-top: 10px;
+            margin-top: 8px;
         }
-        button:hover { background-color: #004494; }
-        .links { margin-top: 20px; font-size: 14px; }
+        .submit-btn:hover { background-color: #004494; }
+        .submit-btn:disabled { background-color: #99bce0; cursor: not-allowed; }
+        .btn-register { background-color: #28a745; }
+        .btn-register:hover { background-color: #218838; }
+
+        #status-msg {
+            margin-top: 15px;
+            font-size: 14px;
+            font-weight: bold;
+            min-height: 20px;
+        }
+        .links { margin-top: 18px; font-size: 14px; border-top: 1px solid #eee; padding-top: 15px; }
         .links a { color: #0056b3; text-decoration: none; }
         .links a:hover { text-decoration: underline; }
+        .hidden { display: none; }
     </style>
 </head>
 <body>
-    <div class="login-card">
-        <h2>🔐 設備管理系統登入</h2>
+    <div class="card">
+        <h2>🔐 設備管理系統</h2>
+
+        <!-- 登入 / 註冊切換標籤 -->
+        <div class="tabs">
+            <button type="button" class="tab-btn active" id="tab-login" onclick="switchTab('login')">帳號登入</button>
+            <button type="button" class="tab-btn" id="tab-register" onclick="switchTab('register')">創建帳號</button>
+        </div>
+
+        <!-- 1. 登入表單 -->
         <form id="login-form">
             <div class="input-group">
-                <label for="userId">學號 / 員工編號</label>
-                <input type="text" id="userId" placeholder="請輸入編號" required>
+                <label for="login-id">帳號（學號 / 員工編號）</label>
+                <input type="text" id="login-id" placeholder="請輸入您的帳號" required>
             </div>
             <div class="input-group">
-                <label for="userName">借用人姓名</label>
-                <input type="text" id="userName" placeholder="請輸入您的姓名" required>
+                <label for="login-pwd">密碼</label>
+                <input type="password" id="login-pwd" placeholder="請輸入密碼" required>
             </div>
-            <button type="submit">進入掃描借還系統</button>
+            <button type="submit" class="submit-btn" id="login-btn">登入系統</button>
         </form>
+
+        <!-- 2. 註冊表單 -->
+        <form id="register-form" class="hidden">
+            <div class="input-group">
+                <label for="reg-id">設定帳號（學號 / 員工編號）</label>
+                <input type="text" id="reg-id" placeholder="例如：B11001001" required>
+            </div>
+            <div class="input-group">
+                <label for="reg-name">真實姓名</label>
+                <input type="text" id="reg-name" placeholder="請輸入您的姓名" required>
+            </div>
+            <div class="input-group">
+                <label for="reg-pwd">設定密碼</label>
+                <input type="password" id="reg-pwd" placeholder="請設定密碼" required>
+            </div>
+            <div class="input-group">
+                <label for="reg-pwd-confirm">確認密碼</label>
+                <input type="password" id="reg-pwd-confirm" placeholder="請再次輸入密碼" required>
+            </div>
+            <button type="submit" class="submit-btn btn-register" id="reg-btn">建立新帳號</button>
+        </form>
+
+        <div id="status-msg"></div>
 
         <div class="links">
             <a href="list.html">📋 直接查看設備借用清單</a>
@@ -74,32 +143,124 @@
     </div>
 
     <script>
-        // 如果之前已經登入過，自動帶入上次的資料方便快速登入
+        // ★★★ 您的 GAS 網頁應用程式網址 ★★★
+        const API_URL = "https://script.google.com/macros/s/AKfycbxRBzTal4XM3rEIgy1VAqOEyDIzWrO5Mq3BtIsx4jJTrfEheyZPfvVRdnymf8INqzs7/exec";
+
+        const statusMsg = document.getElementById("status-msg");
+
+        // 自動帶入上次登入的帳號
         window.onload = function() {
             const savedId = localStorage.getItem("equip_userId");
-            const savedName = localStorage.getItem("equip_userName");
-            if (savedId) document.getElementById("userId").value = savedId;
-            if (savedName) document.getElementById("userName").value = savedName;
+            if (savedId) document.getElementById("login-id").value = savedId;
         };
 
+        // 切換「登入」與「創建帳號」分頁
+        function switchTab(mode) {
+            statusMsg.innerText = "";
+            if (mode === "login") {
+                document.getElementById("tab-login").classList.add("active");
+                document.getElementById("tab-register").classList.remove("active");
+                document.getElementById("login-form").classList.remove("hidden");
+                document.getElementById("register-form").classList.add("hidden");
+            } else {
+                document.getElementById("tab-register").classList.add("active");
+                document.getElementById("tab-login").classList.remove("active");
+                document.getElementById("register-form").classList.remove("hidden");
+                document.getElementById("login-form").classList.add("hidden");
+            }
+        }
+
+        // ================= 處理登入 =================
         document.getElementById("login-form").addEventListener("submit", function(e) {
             e.preventDefault();
-            
-            const userId = document.getElementById("userId").value.trim();
-            const userName = document.getElementById("userName").value.trim();
+            const userId = document.getElementById("login-id").value.trim();
+            const password = document.getElementById("login-pwd").value.trim();
+            const btn = document.getElementById("login-btn");
 
-            if (!userId || !userName) {
-                alert("請完整輸入編號與姓名！");
+            btn.disabled = true;
+            statusMsg.style.color = "#0056b3";
+            statusMsg.innerText = "驗證帳號密碼中，請稍候...";
+
+            const url = `${API_URL}?action=login&userId=${encodeURIComponent(userId)}&password=${encodeURIComponent(password)}`;
+
+            fetch(url, { method: "GET", redirect: "follow" })
+                .then(res => res.json())
+                .then(data => {
+                    btn.disabled = false;
+                    if (data.status === "success") {
+                        statusMsg.style.color = "green";
+                        statusMsg.innerText = `歡迎回來，${data.userName}！跳轉中...`;
+
+                        // 儲存登入狀態與從試算表抓回來的姓名，供 scan.html 使用
+                        localStorage.setItem("equip_userId", data.userId);
+                        localStorage.setItem("equip_userName", data.userName);
+                        localStorage.setItem("equip_isLoggedIn", "true");
+
+                        setTimeout(() => {
+                            window.location.href = "scan.html";
+                        }, 800);
+                    } else {
+                        statusMsg.style.color = "red";
+                        statusMsg.innerText = data.message || "登入失敗，請檢查帳號密碼。";
+                    }
+                })
+                .catch(err => {
+                    btn.disabled = false;
+                    statusMsg.style.color = "red";
+                    statusMsg.innerText = "系統連線錯誤，請確認網路或 GAS 部署版本！";
+                    console.error(err);
+                });
+        });
+
+        // ================= 處理註冊 =================
+        document.getElementById("register-form").addEventListener("submit", function(e) {
+            e.preventDefault();
+            const userId = document.getElementById("reg-id").value.trim();
+            const userName = document.getElementById("reg-name").value.trim();
+            const password = document.getElementById("reg-pwd").value.trim();
+            const pwdConfirm = document.getElementById("reg-pwd-confirm").value.trim();
+            const btn = document.getElementById("reg-btn");
+
+            if (password !== pwdConfirm) {
+                statusMsg.style.color = "red";
+                statusMsg.innerText = "兩次輸入的密碼不一致！";
                 return;
             }
 
-            // 將登入資訊存入手機/電腦瀏覽器中
-            localStorage.setItem("equip_userId", userId);
-            localStorage.setItem("equip_userName", userName);
-            localStorage.setItem("equip_isLoggedIn", "true");
+            btn.disabled = true;
+            statusMsg.style.color = "#28a745";
+            statusMsg.innerText = "建立帳號中，請稍候...";
 
-            // 跳轉至掃描頁面
-            window.location.href = "scan.html";
+            const url = `${API_URL}?action=register&userId=${encodeURIComponent(userId)}&userName=${encodeURIComponent(userName)}&password=${encodeURIComponent(password)}`;
+
+            fetch(url, { method: "GET", redirect: "follow" })
+                .then(res => res.text())
+                .then(text => {
+                    btn.disabled = false;
+                    if (text.includes("成功")) {
+                        statusMsg.style.color = "green";
+                        statusMsg.innerText = "帳號創建成功！請使用新帳號登入。";
+                        document.getElementById("register-form").reset();
+                        
+                        // 自動切回登入分頁並填入剛註冊的帳號
+                        setTimeout(() => {
+                            switchTab("login");
+                            document.getElementById("login-id").value = userId;
+                            document.getElementById("login-pwd").focus();
+                            statusMsg.style.color = "green";
+                            statusMsg.innerText = "註冊完成，請輸入密碼登入！";
+                        }, 1200);
+                    } else {
+                        statusMsg.style.color = "red";
+                        statusMsg.innerText = text;
+                    }
+                })
+                .catch(err => {
+                    btn.disabled = false;
+                    statusMsg.style.color = "red";
+                    statusMsg.innerText = "註冊連線失敗，請稍後再試！";
+                    console.error(err);
+                });
         });
     </script>
 </body>
