@@ -4,102 +4,116 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>設備掃描借用系統</title>
-    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <!-- 指定穩定版本，避免套件更新導致語法不相容 -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js" type="text/javascript"></script>
     <style>
         body { font-family: sans-serif; text-align: center; padding: 20px; background-color: #f8f9fa; }
-        #reader { width: 100%; max-width: 450px; margin: 0 auto; background: black; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); overflow: hidden; }
+        #reader { width: 100%; max-width: 450px; margin: 0 auto; background: black; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); overflow: hidden; min-height: 250px; }
         #result { margin-top: 25px; font-size: 18px; font-weight: bold; color: #333; white-space: pre-wrap; line-height: 1.5; min-height: 60px; }
-        /* 新增選單的樣式 */
-        #camera-select { margin-bottom: 15px; padding: 8px; font-size: 16px; border-radius: 5px; width: 100%; max-width: 300px; }
+        #camera-select { margin-bottom: 15px; padding: 8px; font-size: 16px; border-radius: 5px; width: 100%; max-width: 300px; display: none; }
     </style>
 </head>
 <body>
     <h2>📷 設備掃描借用系統</h2>
     
-    <!-- 新增：手動選擇鏡頭的下拉選單 -->
     <select id="camera-select"></select>
     
     <div id="reader"></div>
-    <div id="result">相機啟動中，請稍候...</div>
-
+    <div id="result">相機啟動中，請允許瀏覽器使用相機權限...</div>
 
     <script>
-        // ★★★ 請替換成您的 GAS 網頁應用程式網址 ★★★
+        // ★★★ 請確認此網址為「部署 > 新增部署 > 網頁應用程式」產生的 /exec 網址 ★★★
         const API_URL = "https://script.google.com/macros/s/AKfycbxRBzTal4XM3rEIgy1VAqOEyDIzWrO5Mq3BtIsx4jJTrfEheyZPfvVRdnymf8INqzs7/exec"; 
-
 
         let isProcessing = false; 
         const html5QrCode = new Html5Qrcode("reader");
         const config = { fps: 10, qrbox: { width: 250, height: 250 } };
         const cameraSelect = document.getElementById('camera-select');
+        const resultDiv = document.getElementById('result');
 
+        function resetScannerStatus() {
+            setTimeout(() => { 
+                isProcessing = false; 
+                resultDiv.style.color = "#333";
+                resultDiv.innerText = "請對準下一個 QR Code 進行掃描...";
+            }, 3500);
+        }
 
         function onScanSuccess(decodedText) {
             if (isProcessing) return; 
-            isProcessing = true;
+            isProcessing = true; 
             
             if (decodedText.includes("text=")) {
                 decodedText = decodedText.split("text=")[1].split("&")[0];
             }
+            decodedText = decodedText.trim();
             
-            const resultDiv = document.getElementById('result');
             resultDiv.style.color = "#0056b3";
             resultDiv.innerText = `讀取到編號：${decodedText}\n連線中...`;
             
-            fetch(API_URL + "?id=" + decodedText)
-                .then(response => response.text())
-                .then(text => {
-                    resultDiv.style.color = text.includes("成功") ? "green" : "red";
-                    resultDiv.innerText = text;
-                    setTimeout(() => { 
-                        isProcessing = false; 
-                        resultDiv.style.color = "#333";
-                        resultDiv.innerText = "請對準下一個 QR Code 進行掃描...";
-                    }, 3500); 
-                })
-                .catch(error => {
-                    resultDiv.style.color = "red";
-                    resultDiv.innerText = "系統連線錯誤！";
-                    setTimeout(() => { isProcessing = false; }, 3500);
-                });
+            // 加上 redirect: 'follow' 確保能正確接收 Google Apps Script 的轉址回應
+            fetch(`${API_URL}?id=${encodeURIComponent(decodedText)}`, {
+                method: "GET",
+                redirect: "follow"
+            })
+            .then(response => {
+                if (!response.ok) throw new Error(`HTTP 錯誤狀態: ${response.status}`);
+                return response.text();
+            })
+            .then(text => {
+                resultDiv.style.color = text.includes("成功") ? "green" : "red";
+                resultDiv.innerText = text;
+                resetScannerStatus();
+            })
+            .catch(error => {
+                console.error("連線失敗:", error);
+                resultDiv.style.color = "red";
+                resultDiv.innerText = `系統連線錯誤！\n(${error.message})\n請檢查 GAS 部署權限是否設為「所有人」`;
+                resetScannerStatus();
+            });
         }
 
-
-        // 啟動指定鏡頭的函數
-        function startCamera(cameraId) {
-            html5QrCode.start(cameraId, config, onScanSuccess)
-                .then(() => { document.getElementById('result').innerText = "請對準 QR Code 進行掃描..."; })
-                .catch(err => { console.error(err); });
-        }
-
-
-        // 抓取設備上所有鏡頭並放入下拉選單
-        Html5Qrcode.getCameras().then(devices => {
-            if (devices && devices.length) {
-                devices.forEach((device, index) => {
-                    const option = document.createElement('option');
-                    option.value = device.id;
-                    option.text = device.label || `相機 ${index + 1}`;
-                    cameraSelect.appendChild(option);
-                });
-
-
-                // 預設啟動選單裡的第一個鏡頭
-                startCamera(cameraSelect.value);
-
-
-                // 當使用者切換選單時，停止目前鏡頭並啟動新鏡頭
-                cameraSelect.addEventListener('change', () => {
-                    html5QrCode.stop().then(() => {
-                        startCamera(cameraSelect.value);
-                    }).catch(err => {
-                        console.error("停止鏡頭失敗", err);
+        // 載入鏡頭清單供手動切換
+        function loadCameraList() {
+            Html5Qrcode.getCameras().then(devices => {
+                if (devices && devices.length > 1) {
+                    cameraSelect.innerHTML = "";
+                    devices.forEach((device, index) => {
+                        const option = document.createElement('option');
+                        option.value = device.id;
+                        option.text = device.label || `相機 ${index + 1}`;
+                        cameraSelect.appendChild(option);
                     });
-                });
-            }
-        }).catch(err => {
-            document.getElementById('result').innerText = "無法取得相機清單，請確認權限。";
+                    cameraSelect.style.display = "inline-block"; // 有多顆鏡頭才顯示選單
+                }
+            }).catch(err => console.log("略過鏡頭清單載入:", err));
+        }
+
+        // 切換鏡頭事件
+        cameraSelect.addEventListener('change', () => {
+            html5QrCode.stop().then(() => {
+                html5QrCode.start(cameraSelect.value, config, onScanSuccess);
+            }).catch(err => console.error("切換鏡頭失敗:", err));
         });
+
+        // 1. 檢查是否為安全連線環境
+        if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+            resultDiv.style.color = "red";
+            resultDiv.innerText = "⚠️ 無法啟動相機！\n瀏覽器規定必須在 HTTPS 網址下才能開啟相機。\n請勿直接雙擊開啟 HTML 檔案。";
+        } else {
+            // 2. 直接優先使用後鏡頭 (environment) 啟動，解決手機端權限阻擋問題
+            html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess)
+                .then(() => {
+                    resultDiv.style.color = "#333";
+                    resultDiv.innerText = "請對準 QR Code 進行掃描...";
+                    loadCameraList(); // 成功取得權限後，再載入鏡頭選單
+                })
+                .catch(err => {
+                    console.error("啟動失敗:", err);
+                    resultDiv.style.color = "red";
+                    resultDiv.innerText = `相機啟動失敗！\n錯誤訊息：${err}\n請確認是否已允許相機權限，或改用 Chrome / Safari 開啟。`;
+                });
+        }
     </script>
 </body>
 </html>
