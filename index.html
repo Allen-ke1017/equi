@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>設備借用系統 - 使用者登入</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .login-card {
+            background: white;
+            padding: 30px 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            max-width: 360px;
+            text-align: center;
+        }
+        h2 { margin-top: 0; color: #333; margin-bottom: 20px; }
+        .input-group { text-align: left; margin-bottom: 15px; }
+        label { display: block; font-size: 14px; color: #555; margin-bottom: 5px; font-weight: bold; }
+        input {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-sizing: border-box;
+        }
+        input:focus { border-color: #0056b3; outline: none; }
+        button {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            font-weight: bold;
+            color: white;
+            background-color: #0056b3;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:hover { background-color: #004494; }
+        .links { margin-top: 20px; font-size: 14px; }
+        .links a { color: #0056b3; text-decoration: none; }
+        .links a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <h2>🔐 設備管理系統登入</h2>
+        <form id="login-form">
+            <div class="input-group">
+                <label for="userId">學號 / 員工編號</label>
+                <input type="text" id="userId" placeholder="請輸入編號" required>
+            </div>
+            <div class="input-group">
+                <label for="userName">借用人姓名</label>
+                <input type="text" id="userName" placeholder="請輸入您的姓名" required>
+            </div>
+            <button type="submit">進入掃描借還系統</button>
+        </form>
+
+        <div class="links">
+            <a href="list.html">📋 直接查看設備借用清單</a>
+        </div>
+    </div>
+
+    <script>
+        // 如果之前已經登入過，自動帶入上次的資料方便快速登入
+        window.onload = function() {
+            const savedId = localStorage.getItem("equip_userId");
+            const savedName = localStorage.getItem("equip_userName");
+            if (savedId) document.getElementById("userId").value = savedId;
+            if (savedName) document.getElementById("userName").value = savedName;
+        };
+
+        document.getElementById("login-form").addEventListener("submit", function(e) {
+            e.preventDefault();
+            
+            const userId = document.getElementById("userId").value.trim();
+            const userName = document.getElementById("userName").value.trim();
+
+            if (!userId || !userName) {
+                alert("請完整輸入編號與姓名！");
+                return;
+            }
+
+            // 將登入資訊存入手機/電腦瀏覽器中
+            localStorage.setItem("equip_userId", userId);
+            localStorage.setItem("equip_userName", userName);
+            localStorage.setItem("equip_isLoggedIn", "true");
+
+            // 跳轉至掃描頁面
+            window.location.href = "scan.html";
+        });
+    </script>
+</body>
+</html>
