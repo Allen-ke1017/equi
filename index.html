@@ -1,257 +1,80 @@
-<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>設備借用系統 - 登入與註冊</title>
-    <style>
-        body {
-            font-family: sans-serif;
-            background-color: #f0f2f5;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            padding: 15px;
-            box-sizing: border-box;
-        }
-        .card {
-            background: white;
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-            width: 100%;
-            max-width: 380px;
-            text-align: center;
-        }
-        h2 { margin-top: 0; color: #333; margin-bottom: 15px; }
-        .tabs {
-            display: flex;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #e9ecef;
-        }
-        .tab-btn {
-            flex: 1;
-            padding: 10px;
-            background: none;
-            border: none;
-            font-size: 16px;
-            font-weight: bold;
-            color: #6c757d;
-            cursor: pointer;
-            border-bottom: 3px solid transparent;
-            margin-bottom: -2px;
-        }
-        .tab-btn.active {
-            color: #0056b3;
-            border-bottom-color: #0056b3;
-        }
-        .input-group { text-align: left; margin-bottom: 14px; }
-        label { display: block; font-size: 14px; color: #555; margin-bottom: 5px; font-weight: bold; }
-        input {
-            width: 100%;
-            padding: 11px;
-            font-size: 15px;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            box-sizing: border-box;
-        }
-        input:focus { border-color: #0056b3; outline: none; }
-        .submit-btn {
-            width: 100%;
-            padding: 12px;
-            font-size: 16px;
-            font-weight: bold;
-            color: white;
-            background-color: #0056b3;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            margin-top: 8px;
-        }
-        .submit-btn:hover { background-color: #004494; }
-        .submit-btn:disabled { background-color: #99bce0; cursor: not-allowed; }
-        .btn-register { background-color: #28a745; }
-        .btn-register:hover { background-color: #218838; }
-        #status-msg {
-            margin-top: 15px;
-            font-size: 14px;
-            font-weight: bold;
-            min-height: 20px;
-        }
-        .links { margin-top: 18px; font-size: 14px; border-top: 1px solid #eee; padding-top: 15px; }
-        .links a { color: #0056b3; text-decoration: none; }
-        .links a:hover { text-decoration: underline; }
-        .hidden { display: none; }
-    </style>
-</head>
-<body>
-    <div class="card">
-        <h2>🔐 設備管理系統</h2>
+function doGet(e) {
+  var action = e.parameter.action;
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
 
-        <div class="tabs">
-            <button type="button" class="tab-btn active" id="tab-login" onclick="switchTab('login')">帳號登入</button>
-            <button type="button" class="tab-btn" id="tab-register" onclick="switchTab('register')">創建帳號</button>
-        </div>
+  // ================= 1. 註冊新帳號 =================
+  if (action === "register") {
+    var userSheet = ss.getSheetByName("Users"); // 請確認工作表分頁名稱是否為 Users
+    if (!userSheet) return ContentService.createTextOutput("錯誤：找不到 Users 工作表");
 
-        <!-- 1. 登入表單 -->
-        <form id="login-form">
-            <div class="input-group">
-                <label for="login-id">帳號（user_id）</label>
-                <input type="text" id="login-id" placeholder="請輸入您的帳號" required>
-            </div>
-            <div class="input-group">
-                <label for="login-pwd">密碼</label>
-                <input type="password" id="login-pwd" placeholder="請輸入密碼" required>
-            </div>
-            <button type="submit" class="submit-btn" id="login-btn">登入系統</button>
-        </form>
+    var userId = String(e.parameter.userId || "").trim();
+    var userName = String(e.parameter.userName || "").trim();
+    var password = String(e.parameter.password || "").trim();
 
-        <!-- 2. 註冊表單 -->
-        <form id="register-form" class="hidden">
-            <div class="input-group">
-                <label for="reg-id">設定帳號（user_id）</label>
-                <input type="text" id="reg-id" placeholder="請輸入帳號或學號" required>
-            </div>
-            <div class="input-group">
-                <label for="reg-name">姓名（name）</label>
-                <input type="text" id="reg-name" placeholder="請輸入您的姓名" required>
-            </div>
-            <div class="input-group">
-                <label for="reg-pwd">設定密碼</label>
-                <input type="password" id="reg-pwd" placeholder="請設定密碼" required>
-            </div>
-            <div class="input-group">
-                <label for="reg-pwd-confirm">確認密碼</label>
-                <input type="password" id="reg-pwd-confirm" placeholder="請再次輸入密碼" required>
-            </div>
-            <button type="submit" class="submit-btn btn-register" id="reg-btn">建立新帳號</button>
-        </form>
+    if (!userId || !password || !userName) {
+      return ContentService.createTextOutput("註冊失敗：資料不完整");
+    }
 
-        <div id="status-msg"></div>
+    // 檢查 A 欄 (user_id) 是否已被註冊
+    var data = userSheet.getDataRange().getValues();
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][0]).trim() === userId) {
+        return ContentService.createTextOutput("註冊失敗：此帳號已經存在！");
+      }
+    }
 
-        <div class="links">
-            <a href="list.html">📋 直接查看設備借用清單</a>
-        </div>
-    </div>
+    // 依照您的 5 個欄位順序寫入：user_id, name, role, status, password
+    // 預設 role 為 "user"，status 為 "active"（若您希望註冊後需管理員審核才開通，可將 "active" 改為 "pending"）
+    userSheet.appendRow(["'" + userId, userName, "user", "active", "'" + password]);
+    return ContentService.createTextOutput("註冊成功");
+  }
 
-    <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbxRBzTal4XM3rEIgy1VAqOEyDIzWrO5Mq3BtIsx4jJTrfEheyZPfvVRdnymf8INqzs7/exec";
-        const statusMsg = document.getElementById("status-msg");
+  // ================= 2. 帳號密碼登入驗證 =================
+  if (action === "login") {
+    var userSheet = ss.getSheetByName("Users");
+    if (!userSheet) return ContentService.createTextOutput(JSON.stringify({ status: "error", message: "找不到 Users 工作表" }));
 
-        window.onload = function() {
-            const savedId = localStorage.getItem("equip_userId");
-            if (savedId) document.getElementById("login-id").value = savedId;
-        };
+    var userId = String(e.parameter.userId || "").trim();
+    var password = String(e.parameter.password || "").trim();
 
-        function switchTab(mode) {
-            statusMsg.innerText = "";
-            if (mode === "login") {
-                document.getElementById("tab-login").classList.add("active");
-                document.getElementById("tab-register").classList.remove("active");
-                document.getElementById("login-form").classList.remove("hidden");
-                document.getElementById("register-form").classList.add("hidden");
-            } else {
-                document.getElementById("tab-register").classList.add("active");
-                document.getElementById("tab-login").classList.remove("active");
-                document.getElementById("register-form").classList.remove("hidden");
-                document.getElementById("login-form").classList.add("hidden");
-            }
+    var data = userSheet.getDataRange().getValues();
+    for (var i = 1; i < data.length; i++) {
+      var rowId     = String(data[i][0]).trim(); // A欄: user_id
+      var rowName   = String(data[i][1]).trim(); // B欄: name
+      var rowRole   = String(data[i][2]).trim(); // C欄: role
+      var rowStatus = String(data[i][3]).trim(); // D欄: status
+      var rowPwd    = String(data[i][4]).trim(); // E欄: password
+
+      if (rowId === userId && rowPwd === password) {
+        // 檢查 D 欄 status 狀態（若為停用/未開通則阻擋登入）
+        if (rowStatus.toLowerCase() === "disabled" || rowStatus === "停用" || rowStatus.toLowerCase() === "pending") {
+          return ContentService.createTextOutput(JSON.stringify({
+            status: "error",
+            message: "此帳號目前無法使用（狀態：" + rowStatus + "），請聯繫管理員！"
+          }));
         }
 
-        // ================= 處理登入 =================
-        document.getElementById("login-form").addEventListener("submit", function(e) {
-            e.preventDefault();
-            const userId = document.getElementById("login-id").value.trim();
-            const password = document.getElementById("login-pwd").value.trim();
-            const btn = document.getElementById("login-btn");
+        // 驗證成功，回傳 userId、userName 與 role
+        return ContentService.createTextOutput(JSON.stringify({
+          status: "success",
+          userId: rowId,
+          userName: rowName,
+          role: rowRole
+        }));
+      }
+    }
 
-            btn.disabled = true;
-            statusMsg.style.color = "#0056b3";
-            statusMsg.innerText = "驗證帳號密碼中，請稍候...";
+    return ContentService.createTextOutput(JSON.stringify({
+      status: "error",
+      message: "帳號或密碼錯誤！"
+    }));
+  }
 
-            const url = `${API_URL}?action=login&userId=${encodeURIComponent(userId)}&password=${encodeURIComponent(password)}`;
-
-            fetch(url, { method: "GET", redirect: "follow" })
-                .then(res => res.json())
-                .then(data => {
-                    btn.disabled = false;
-                    if (data.status === "success") {
-                        statusMsg.style.color = "green";
-                        statusMsg.innerText = `歡迎回來，${data.userName}！跳轉中...`;
-
-                        // 儲存登入資訊（含 role 權限）
-                        localStorage.setItem("equip_userId", data.userId);
-                        localStorage.setItem("equip_userName", data.userName);
-                        localStorage.setItem("equip_userRole", data.role || "user");
-                        localStorage.setItem("equip_isLoggedIn", "true");
-
-                        setTimeout(() => {
-                            window.location.href = "scan.html";
-                        }, 800);
-                    } else {
-                        statusMsg.style.color = "red";
-                        statusMsg.innerText = data.message || "登入失敗，請檢查帳號密碼。";
-                    }
-                })
-                .catch(err => {
-                    btn.disabled = false;
-                    statusMsg.style.color = "red";
-                    statusMsg.innerText = "系統連線錯誤，請確認網路或 GAS 部署版本！";
-                    console.error(err);
-                });
-        });
-
-        // ================= 處理註冊 =================
-        document.getElementById("register-form").addEventListener("submit", function(e) {
-            e.preventDefault();
-            const userId = document.getElementById("reg-id").value.trim();
-            const userName = document.getElementById("reg-name").value.trim();
-            const password = document.getElementById("reg-pwd").value.trim();
-            const pwdConfirm = document.getElementById("reg-pwd-confirm").value.trim();
-            const btn = document.getElementById("reg-btn");
-
-            if (password !== pwdConfirm) {
-                statusMsg.style.color = "red";
-                statusMsg.innerText = "兩次輸入的密碼不一致！";
-                return;
-            }
-
-            btn.disabled = true;
-            statusMsg.style.color = "#28a745";
-            statusMsg.innerText = "建立帳號中，請稍候...";
-
-            const url = `${API_URL}?action=register&userId=${encodeURIComponent(userId)}&userName=${encodeURIComponent(userName)}&password=${encodeURIComponent(password)}`;
-
-            fetch(url, { method: "GET", redirect: "follow" })
-                .then(res => res.text())
-                .then(text => {
-                    btn.disabled = false;
-                    if (text.includes("成功")) {
-                        statusMsg.style.color = "green";
-                        statusMsg.innerText = "帳號創建成功！請使用新帳號登入。";
-                        document.getElementById("register-form").reset();
-                        
-                        setTimeout(() => {
-                            switchTab("login");
-                            document.getElementById("login-id").value = userId;
-                            document.getElementById("login-pwd").focus();
-                            statusMsg.style.color = "green";
-                            statusMsg.innerText = "註冊完成，請輸入密碼登入！";
-                        }, 1200);
-                    } else {
-                        statusMsg.style.color = "red";
-                        statusMsg.innerText = text;
-                    }
-                })
-                .catch(err => {
-                    btn.disabled = false;
-                    statusMsg.style.color = "red";
-                    statusMsg.innerText = "註冊連線失敗，請稍後再試！";
-                    console.error(err);
-                });
-        });
-    </script>
-</body>
-</html>
+  // ================= 3. 原本的設備掃描借還邏輯 =================
+  // （請將您原本寫在 doGet 裡面的掃描借還程式碼保留在這裡）
+  var id = e.parameter.id;
+  var borrowerId = e.parameter.userId;
+  var borrowerName = e.parameter.userName;
+  
+  // ... 您原本的程式碼 ...
+}
